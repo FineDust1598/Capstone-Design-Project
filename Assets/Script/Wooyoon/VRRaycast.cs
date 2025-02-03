@@ -1,22 +1,55 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class VRRaycast : MonoBehaviour
 {
     public LayerMask interactableLayer;
     private GameObject lastHitObject;
+    public float maxRayDistance = 10f; // 레이 길이 제한
 
     public delegate void RaycastHitEvent(GameObject hitObject);
     public event RaycastHitEvent OnRaycastHit;
     public event RaycastHitEvent OnRaycastExit;
+    public event RaycastHitEvent OnRaycastClick;
 
-    private RaycastHit hitInfo; // 레이 히트 정보를 저장
-    private bool isHitting = false; // 현재 레이캐스트가 히트했는지 여부
+    private RaycastHit hitInfo;
+    private bool isHitting = false;
+    private LineRenderer lineRenderer;
+    private EventSystem eventSystem;
+    private PointerEventData pointerEventData;
+
+    void Start()
+    {
+        // LineRenderer 설정
+        lineRenderer = gameObject.AddComponent<LineRenderer>();
+        lineRenderer.startWidth = 0.02f;
+        lineRenderer.endWidth = 0.02f;
+        lineRenderer.material = new Material(Shader.Find("Unlit/Color"));
+        lineRenderer.positionCount = 2;
+
+        // EventSystem 설정
+        eventSystem = EventSystem.current;
+        pointerEventData = new PointerEventData(eventSystem);
+    }
 
     void Update()
     {
         PerformRaycast();
+
+        // 클릭 이벤트 감지 후 실행
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (lastHitObject != null)
+            {
+                OnRaycastClick?.Invoke(lastHitObject);
+            }
+            else
+            {
+                TryClickUI(); // UI 클릭 감지
+            }
+        }
     }
 
     void PerformRaycast()
@@ -24,7 +57,7 @@ public class VRRaycast : MonoBehaviour
         Ray ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, interactableLayer))
+        if (Physics.Raycast(ray, out hit, maxRayDistance, interactableLayer))
         {
             if (lastHitObject != hit.transform.gameObject)
             {
@@ -37,8 +70,13 @@ public class VRRaycast : MonoBehaviour
                 OnRaycastHit?.Invoke(lastHitObject);
             }
 
-            hitInfo = hit; // 히트 정보 저장
+            hitInfo = hit;
             isHitting = true;
+
+            // LineRenderer로 Ray 시각화
+            lineRenderer.SetPosition(0, ray.origin);
+            lineRenderer.SetPosition(1, hit.point);
+            lineRenderer.material.color = Color.green;
         }
         else
         {
@@ -49,24 +87,24 @@ public class VRRaycast : MonoBehaviour
             }
 
             isHitting = false;
+
+            // 충돌한 오브젝트가 없을 때 10m 길이의 레이
+            lineRenderer.SetPosition(0, ray.origin);
+            lineRenderer.SetPosition(1, ray.origin + ray.direction * maxRayDistance);
+            lineRenderer.material.color = Color.red;
         }
     }
 
-    void OnDrawGizmos()
+    void TryClickUI()
     {
-        if (!Application.isPlaying) return; // 플레이 중일 때만 실행
+        pointerEventData.position = new Vector2(Screen.width / 2, Screen.height / 2);
+        List<RaycastResult> results = new List<RaycastResult>();
+        eventSystem.RaycastAll(pointerEventData, results);
 
-        Gizmos.color = isHitting ? Color.green : Color.red; // 히트하면 녹색, 안 하면 빨간색
-
-        Ray ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
-        if (isHitting)
+        if (results.Count > 0)
         {
-            Gizmos.DrawLine(ray.origin, hitInfo.point); // 충돌 지점까지 선을 그림
-            Gizmos.DrawSphere(hitInfo.point, 0.05f); // 충돌 지점에 작은 구를 그림
-        }
-        else
-        {
-            Gizmos.DrawRay(ray.origin, ray.direction * 10); // 10m 길이의 빨간색 레이 표시
+            OnRaycastClick?.Invoke(results[0].gameObject);
+            ExecuteEvents.Execute(results[0].gameObject, new PointerEventData(eventSystem), ExecuteEvents.pointerClickHandler);
         }
     }
 }
