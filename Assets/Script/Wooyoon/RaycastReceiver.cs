@@ -11,6 +11,7 @@ public class RaycastReceiver : MonoBehaviour
         {
             vrRaycast.OnRaycastHit += HandleRaycastHit;
             vrRaycast.OnRaycastExit += HandleRaycastExit;
+            vrRaycast.OnRaycastClick += HandleRaycastClick; // 클릭 이벤트 구독
         }
     }
 
@@ -22,5 +23,10 @@ public class RaycastReceiver : MonoBehaviour
     void HandleRaycastExit(GameObject obj)
     {
         Debug.Log("Raycast Exit: " + obj.name);
+    }
+
+    void HandleRaycastClick(GameObject obj)
+    {
+        Debug.Log("Clicked on: " + obj.name); // 클릭된 오브젝트 이름 출력
     }
 }
