@@ -22,6 +22,36 @@ namespace Unity.VRTemplate
         [SerializeField] private List<Step> m_StepList = new List<Step>();
 
         private int m_CurrentStepIndex = 0;
+        private string filePath;
+
+        private void Start()
+        {
+            InitializeFile();
+        }
+
+        private void InitializeFile()
+        {
+            string directoryPath = Path.Combine(Application.dataPath, "ResultText");
+            filePath = Path.Combine(directoryPath, "ModalText.txt");
+
+            try
+            {
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                    Debug.Log($"폴더 생성: {directoryPath}");
+                }
+
+                // 파일 이름 중복 시 새로운 파일 생성
+                filePath = GetUniqueFilePath(filePath);
+                File.WriteAllText(filePath, "--- Modal Text 기록 시작 ---\n\n");
+                Debug.Log($"새 파일 생성 및 초기화 완료: {filePath}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"파일 초기화 실패: {e.Message}");
+            }
+        }
 
         public void Next()
         {
@@ -82,19 +112,10 @@ namespace Unity.VRTemplate
             string textContent = modalText.text;
             Debug.Log($"Modal Text 내용: {textContent}");
 
-            string directoryPath = Path.Combine(Application.dataPath, "ResultText");
-            string filePath = Path.Combine(directoryPath, "ModalText.txt");  // 하나의 파일 이름 사용
-
             try
             {
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                    Debug.Log($"폴더 생성: {directoryPath}");
-                }
-
-                // 텍스트를 덮어쓰지 않고 추가
-                File.AppendAllText(filePath, textContent + "\n\n");  // 각 항목을 구분하기 위해 줄바꿈 추가
+                // 텍스트를 파일에 추가
+                File.AppendAllText(filePath, textContent + "\n\n");
                 Debug.Log($"Modal Text 저장 완료: {filePath}");
             }
             catch (Exception e)
@@ -103,5 +124,19 @@ namespace Unity.VRTemplate
             }
         }
 
+        private string GetUniqueFilePath(string filePath)
+        {
+            int count = 1;
+            string directory = Path.GetDirectoryName(filePath);
+            string filename = Path.GetFileNameWithoutExtension(filePath);
+            string extension = Path.GetExtension(filePath);
+
+            while (File.Exists(filePath))
+            {
+                filePath = Path.Combine(directory, $"{filename}({count}){extension}");
+                count++;
+            }
+            return filePath;
+        }
     }
 }
