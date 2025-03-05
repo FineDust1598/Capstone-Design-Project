@@ -40,6 +40,7 @@ public class DropdownTestScript : MonoBehaviour
                         break;
 
                 }
+
                 Debug.Log("Text º¯°æµÊ : " + tmpText.text);
                 previousText = tmpText.text;
             }
