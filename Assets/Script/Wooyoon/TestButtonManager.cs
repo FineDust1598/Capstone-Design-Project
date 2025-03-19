@@ -6,9 +6,6 @@ using UnityEngine;
 
 namespace Unity.VRTemplate
 {
-    /// <summary>
-    /// Controls the steps in the coaching card.
-    /// </summary>
     public class TestButtonManager : MonoBehaviour
     {
         [Serializable]
@@ -21,6 +18,8 @@ namespace Unity.VRTemplate
         [SerializeField] private TextMeshProUGUI m_StepButtonTextField;
         [SerializeField] private List<Step> m_StepList = new List<Step>();
 
+        public string customDirectoryPath = "ResultText/ModalText"; // public으로 경로 공개
+
         private int m_CurrentStepIndex = 0;
         private string filePath;
 
@@ -31,7 +30,8 @@ namespace Unity.VRTemplate
 
         private void InitializeFile()
         {
-            string directoryPath = Path.Combine(Application.dataPath, "ResultText");
+            // 지정한 경로에 저장
+            string directoryPath = Path.Combine(Application.dataPath, customDirectoryPath);
             filePath = Path.Combine(directoryPath, "ModalText.txt");
 
             try
@@ -114,7 +114,6 @@ namespace Unity.VRTemplate
 
             try
             {
-                // 텍스트를 파일에 추가
                 File.AppendAllText(filePath, textContent + "\n\n");
                 Debug.Log($"Modal Text 저장 완료: {filePath}");
             }
