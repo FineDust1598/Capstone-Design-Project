@@ -1,0 +1,4 @@
+내가 음악을 내고 싶은 객체에 가서
+Audio Source확인
+
+Output을 MasterMixer의 Master 그룹 선택
