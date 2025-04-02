@@ -9,8 +9,8 @@ public class SlidingDoorController : MonoBehaviour
 {
 
     public Transform door; // 문 오브젝트
-    public float minX = 0f; // 닫힌 상태 위치
-    public float maxX = 3f; // 열린 상태 위치
+    public float minZ = 32.5f; // 닫힌 상태 위치
+    public float maxZ = 48.5f; // 열린 상태 위치
     public float speed = 2f; // 문이 움직이는 속도
 
     private bool isGrabbed = false;
@@ -38,8 +38,8 @@ public class SlidingDoorController : MonoBehaviour
         if (isGrabbed)
         {
             // 문이 X축 범위 내에서만 움직이도록 제한
-            float clampedX = Mathf.Clamp(door.position.x, minX, maxX);
-            door.position = new Vector3(clampedX, initialPosition.y, initialPosition.z);
+            float clampedZ = Mathf.Clamp(door.position.z, minZ, maxZ);
+            door.position = new Vector3(initialPosition.x, initialPosition.y, clampedZ);
 
             door.rotation = initialRotation;
         }
