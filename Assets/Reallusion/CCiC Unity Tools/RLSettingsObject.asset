@@ -20,11 +20,7 @@ MonoBehaviour:
   postInstallShowPopupNotWindow: 0
   performPostInstallationCheck: 0
   updateAvailable: 0
-<<<<<<< HEAD
-  lastUpdateCheck: 638817901180145674
-=======
-  lastUpdateCheck: 638795473480630085
->>>>>>> parent of e4fbf38 (sit anim import and bug)
+  lastUpdateCheck: 638801878659276365
   jsonTagName: 2.0.0
   jsonHtmlUrl: https://github.com/soupday/CCiC-Unity-Tools/releases/tag/2.0.0
   jsonPublishedAt: 2024-12-18T16:58:57Z
