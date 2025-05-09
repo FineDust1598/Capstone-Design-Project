@@ -10,13 +10,19 @@ public class AIFeedback : MonoBehaviour
 {
     public string modelAnswerFilePath = "Assets/ResultText/AnswerSheet/ModelAnswer.txt"; // 모범 답안 파일 경로
     public string resultDirectoryPath = "Assets/ResultText/ResultFeedback"; // 결과 저장 폴더
-    private string apiKey = "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"; // OpenAI API 키
+    private string apiKeyPath = "Assets/Script/wooyoon/API/gpt_api.txt"; // API 키 파일 경로
+    private string apiKey;
 
     void Start()
     {
         Debug.Log("AIFeedback 스크립트 시작됨");
 
-        // 모범 답안 로드 테스트
+        apiKey = LoadApiKey();
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            Debug.LogError("API 키를 불러올 수 없습니다.");
+        }
+
         string modelAnswer = LoadModelAnswer();
         if (string.IsNullOrEmpty(modelAnswer))
         {
@@ -38,8 +44,7 @@ public class AIFeedback : MonoBehaviour
 
     private string LoadModelAnswer()
     {
-        // 파일 경로 수정: Assets 중복 문제 해결
-        string path = Path.Combine(Application.dataPath, modelAnswerFilePath);
+        string path = Path.Combine(Application.dataPath, modelAnswerFilePath.Substring("Assets/".Length));
         Debug.Log("모범 답안 파일 예상 경로: " + path);
 
         if (File.Exists(path))
@@ -50,6 +55,20 @@ public class AIFeedback : MonoBehaviour
         }
 
         Debug.LogError("모범 답안 파일이 존재하지 않습니다: " + path);
+        return null;
+    }
+
+    private string LoadApiKey()
+    {
+        string path = Path.Combine(Application.dataPath, apiKeyPath.Substring("Assets/".Length));
+        Debug.Log("API 키 파일 예상 경로: " + path);
+
+        if (File.Exists(path))
+        {
+            return File.ReadAllText(path).Trim();
+        }
+
+        Debug.LogError("API 키 파일이 존재하지 않습니다: " + path);
         return null;
     }
 
@@ -111,7 +130,7 @@ public class AIFeedback : MonoBehaviour
     {
         Debug.Log("SaveFeedbackToFile 호출됨");
 
-        string directoryPath = Path.Combine(Application.dataPath, resultDirectoryPath);
+        string directoryPath = Path.Combine(Application.dataPath, resultDirectoryPath.Substring("Assets/".Length));
         if (!Directory.Exists(directoryPath))
         {
             Directory.CreateDirectory(directoryPath);
