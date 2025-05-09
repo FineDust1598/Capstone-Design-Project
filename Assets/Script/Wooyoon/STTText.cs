@@ -1,216 +1,105 @@
-﻿using System;
-using System.Collections;
-using System.IO;
-using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.UI;
+using System.Collections;
+using System.Text;
+using System.IO;
+using System;
 
 public class STTText : MonoBehaviour
 {
-    public TextMeshProUGUI resultText; // Unity UI의 TextMeshPro 오브젝트 연결
-    public Toggle toggle; // Toggle UI 연결
-    public string customDirectoryPath = "ResultText/STT"; // 저장 경로 (Public으로 변경)
+    public AudioSource audioSource;
 
-    private string apiKey = "AIzaSyAv6ryH4XWPVNwItU_CRiSs-EruDNeA7tY"; // Google API 키
-    private AudioClip recordedClip; // 녹음된 오디오 저장
-    private bool isRecording = false; // 녹음 상태 확인
-    private string filePath; // 저장 경로
+    private string apiKey;  // AIzaSyAZ65K3j8HyYnAZ-M6QcoLmZp2ll75CGTU
+    private string tempPath;
 
     void Start()
     {
-        resultText.text = "Change Toggle to speak~";
+        // 환경 변수에서 API 키 로드
+        apiKey = Environment.GetEnvironmentVariable("GOOGLE_TTS_API_KEY");
 
-        if (toggle == null)
+        if (string.IsNullOrEmpty(apiKey))
         {
-            Debug.LogError("Toggle이 연결되지 않았습니다! Inspector에서 할당하세요.");
+            Debug.LogError("Google TTS API 키가 환경 변수에서 설정되지 않았습니다.");
             return;
         }
-        toggle.onValueChanged.AddListener(OnToggleChanged);
-        InitializeFile();
+
+        // 임시 파일 경로 지정
+        tempPath = Path.Combine(Application.persistentDataPath, "tts_output.mp3");
+
+        // 게임 시작 시 임시 파일 삭제
+        DeleteTempFile();
     }
 
-    // STT 텍스트 저장을 위한 초기화
-    private void InitializeFile()
+    public void SynthesizeAndPlay(string text)
     {
-        string directoryPath = Path.Combine(Application.dataPath, customDirectoryPath);
-        filePath = Path.Combine(directoryPath, "STT Text.txt");
+        StartCoroutine(SynthesizeSpeech(text));
+    }
 
-        try
+    private IEnumerator SynthesizeSpeech(string text)
+    {
+        string url = "https://texttospeech.googleapis.com/v1/text:synthesize?key=" + apiKey;
+
+        var requestBody = new
         {
-            if (!Directory.Exists(directoryPath))
+            input = new { text = text },
+            voice = new { languageCode = "ko-KR", name = "ko-KR-Standard-A" },
+            audioConfig = new { audioEncoding = "MP3" }
+        };
+
+        string jsonData = JsonUtility.ToJson(requestBody);
+
+        using (UnityWebRequest www = new UnityWebRequest(url, "POST"))
+        {
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
             {
-                Directory.CreateDirectory(directoryPath);
-                Debug.Log($"폴더 생성: {directoryPath}");
-            }
+                string jsonResponse = www.downloadHandler.text;
+                var response = JsonUtility.FromJson<TTSResponse>(jsonResponse);
 
-            // 중복 방지: 새로운 파일명 생성
-            filePath = GetUniqueFilePath(filePath);
-            Debug.Log($"STT 파일 경로: {filePath}");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"파일 초기화 실패: {e.Message}");
-        }
-    }
+                byte[] audioData = Convert.FromBase64String(response.audioContent);
+                File.WriteAllBytes(tempPath, audioData);
 
-    private string GetUniqueFilePath(string filePath)
-    {
-        int count = 1;
-        string directory = Path.GetDirectoryName(filePath);
-        string filename = Path.GetFileNameWithoutExtension(filePath);
-        string extension = Path.GetExtension(filePath);
+                using (UnityWebRequest audioRequest = UnityWebRequestMultimedia.GetAudioClip("file://" + tempPath, AudioType.MPEG))
+                {
+                    yield return audioRequest.SendWebRequest();
 
-        while (File.Exists(filePath))
-        {
-            filePath = Path.Combine(directory, $"{filename}({count}){extension}");
-            count++;
-        }
-        return filePath;
-    }
-
-    // 녹음 시작
-    void StartRecording()
-    {
-        if (!isRecording)
-        {
-            isRecording = true;
-            recordedClip = Microphone.Start(null, false, 5, 16000);
-            resultText.text = "녹음 중...";
-            Debug.Log("녹음 시작!");
-        }
-    }
-
-    // 녹음 종료 및 STT 변환
-    void StopRecording()
-    {
-        if (isRecording)
-        {
-            isRecording = false;
-            Microphone.End(null);
-            resultText.text = "녹음 종료! 변환 중...";
-            Debug.Log("녹음 종료! 변환 중...");
-
-            byte[] audioData = ConvertAudioClipToWAV(recordedClip);
-            StartCoroutine(SendAudioToGoogle(audioData));
-        }
-    }
-
-    // AudioClip을 WAV로 변환
-    byte[] ConvertAudioClipToWAV(AudioClip clip)
-    {
-        MemoryStream stream = new MemoryStream();
-        int length = clip.samples * clip.channels;
-        float[] data = new float[length];
-        clip.GetData(data, 0);
-        short[] intData = new short[length];
-
-        for (int i = 0; i < length; i++)
-        {
-            intData[i] = (short)(data[i] * 32767);
-        }
-
-        byte[] bytes = new byte[length * 2];
-        Buffer.BlockCopy(intData, 0, bytes, 0, bytes.Length);
-        return bytes;
-    }
-
-    // Google STT API로 전송
-    private IEnumerator SendAudioToGoogle(byte[] audioData)
-    {
-        string url = $"https://speech.googleapis.com/v1/speech:recognize?key={apiKey}";
-        string base64Audio = Convert.ToBase64String(audioData);
-        string json = "{\"config\":{\"encoding\":\"LINEAR16\",\"sampleRateHertz\":16000,\"languageCode\":\"ko-KR\"},\"audio\":{\"content\":\"" + base64Audio + "\"}}";
-
-        using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
-        {
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
-            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
-
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                string responseText = request.downloadHandler.text;
-                Debug.Log("STT 성공! 응답: " + responseText);
-
-                string transcript = ParseGoogleSTTResponse(responseText);
-                resultText.text = "변환 결과: " + transcript;
-
-                // STT 결과 파일 저장
-                SaveSTTTextToFile(transcript);
+                    if (audioRequest.result == UnityWebRequest.Result.Success)
+                    {
+                        AudioClip clip = DownloadHandlerAudioClip.GetContent(audioRequest);
+                        audioSource.clip = clip;
+                        audioSource.Play();
+                    }
+                    else
+                    {
+                        Debug.LogError("오디오 로딩 실패: " + audioRequest.error);
+                    }
+                }
             }
             else
             {
-                Debug.LogError("STT 실패: " + request.error);
-                resultText.text = "변환 실패!";
+                Debug.LogError("TTS 요청 실패: " + www.error);
             }
         }
     }
 
-    private string ParseGoogleSTTResponse(string jsonResponse)
+    private void DeleteTempFile()
     {
-        var json = JsonUtility.FromJson<GoogleSTTResponse>(jsonResponse);
-        if (json != null && json.results.Length > 0)
+        if (File.Exists(tempPath))
         {
-            return json.results[0].alternatives[0].transcript;
-        }
-        return "음성 인식 실패!";
-    }
-
-    private void SaveSTTTextToFile(string sttText)
-    {
-        if (string.IsNullOrWhiteSpace(sttText))
-        {
-            Debug.LogWarning("저장할 STT 텍스트가 비어 있습니다.");
-            return;
-        }
-
-        string formattedText = $"면접자 : {sttText}\n\n";
-        Debug.Log($"저장할 STT 텍스트: {formattedText}");
-
-        try
-        {
-            File.AppendAllText(filePath, formattedText);
-            Debug.Log($"STT 텍스트 저장 완료: {filePath}");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"STT 텍스트 저장 실패: {e.Message}");
-        }
-    }
-
-    void OnToggleChanged(bool isOn)
-    {
-        if (isOn)
-        {
-            StartRecording();
-            Debug.Log("녹음 시작 (Toggle: On)");
-        }
-        else
-        {
-            StopRecording();
-            Debug.Log("녹음 종료 (Toggle: Off)");
+            File.Delete(tempPath);
+            Debug.Log("기존 TTS 오디오 파일 삭제 완료.");
         }
     }
 
     [Serializable]
-    private class GoogleSTTResponse
+    private class TTSResponse
     {
-        public Result[] results;
-    }
-
-    [Serializable]
-    private class Result
-    {
-        public Alternative[] alternatives;
-    }
-
-    [Serializable]
-    private class Alternative
-    {
-        public string transcript;
+        public string audioContent;
     }
 }
