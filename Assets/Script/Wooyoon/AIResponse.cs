@@ -7,9 +7,9 @@ public class AIResponse : MonoBehaviour
 {
     public TextMeshProUGUI aiSubtitleText;
     public AudioSource ttsAudioSource;
-    public Animator npcAnimator;
+    // public Animator npcAnimator;
 
-    public void RespondToUser(string userInput)
+    public IEnumerator RespondToUserCoroutine(string userInput)
     {
         // Step 1: GPT API 등으로 AI 응답 생성 (여기선 예시 텍스트)
         string aiResponse = $"좋은 질문입니다. 이에 대한 제 생각은...";
@@ -18,10 +18,10 @@ public class AIResponse : MonoBehaviour
         aiSubtitleText.text = aiResponse;
 
         // Step 3: TTS 출력 (구글 TTS 또는 로컬 클립)
-        StartCoroutine(PlayTTS(aiResponse));
+        yield return StartCoroutine(PlayTTS(aiResponse));
 
         // Step 4: 제스처 트리거
-        npcAnimator.SetTrigger("Talk");
+        // npcAnimator.SetTrigger("Talk");
     }
 
     private IEnumerator PlayTTS(string text)
