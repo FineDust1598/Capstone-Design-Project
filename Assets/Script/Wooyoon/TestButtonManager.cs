@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI; // UnityEngine.UI.Text 사용
+using TMPro; // TextMeshPro 사용
 
 namespace Unity.VRTemplate
 {
@@ -15,10 +16,10 @@ namespace Unity.VRTemplate
             [SerializeField] public string buttonText;
         }
 
-        [SerializeField] private TextMeshProUGUI m_StepButtonTextField;
+        [SerializeField] private TextMeshProUGUI m_StepButtonTextField; // TMP 사용
         [SerializeField] private List<Step> m_StepList = new List<Step>();
 
-        public string customDirectoryPath = "ResultText/ModalText"; // public으로 경로 공개
+        public string customDirectoryPath = "ResultText/ModalText";
 
         private int m_CurrentStepIndex = 0;
         private string filePath;
@@ -30,7 +31,6 @@ namespace Unity.VRTemplate
 
         private void InitializeFile()
         {
-            // 지정한 경로에 저장
             string directoryPath = Path.Combine(Application.dataPath, customDirectoryPath);
             filePath = Path.Combine(directoryPath, "ModalText.txt");
 
@@ -42,7 +42,6 @@ namespace Unity.VRTemplate
                     Debug.Log($"폴더 생성: {directoryPath}");
                 }
 
-                // 파일 이름 중복 시 새로운 파일 생성
                 filePath = GetUniqueFilePath(filePath);
                 File.WriteAllText(filePath, "--- Modal Text 기록 시작 ---\n\n");
                 Debug.Log($"새 파일 생성 및 초기화 완료: {filePath}");
@@ -65,32 +64,29 @@ namespace Unity.VRTemplate
 
             SaveModalTextToFile();
 
-            // 현재 카드 비활성화
             if (m_StepList[m_CurrentStepIndex].stepObject != null)
             {
                 Debug.Log($"현재 카드 비활성화: {m_StepList[m_CurrentStepIndex].stepObject.name}");
                 m_StepList[m_CurrentStepIndex].stepObject.SetActive(false);
             }
-            else
-            {
-                Debug.LogWarning("현재 카드 stepObject가 null입니다.");
-            }
 
-            // 다음 카드 활성화
             m_CurrentStepIndex = (m_CurrentStepIndex + 1) % m_StepList.Count;
+
             if (m_StepList[m_CurrentStepIndex].stepObject != null)
             {
                 Debug.Log($"다음 카드 활성화: {m_StepList[m_CurrentStepIndex].stepObject.name}");
                 m_StepList[m_CurrentStepIndex].stepObject.SetActive(true);
             }
+
+            if (m_StepButtonTextField != null)
+            {
+                m_StepButtonTextField.text = m_StepList[m_CurrentStepIndex].buttonText;
+                Debug.Log($"버튼 텍스트 변경: {m_StepButtonTextField.text}");
+            }
             else
             {
-                Debug.LogWarning("다음 카드 stepObject가 null입니다.");
+                Debug.LogWarning("버튼 텍스트 필드가 할당되지 않았습니다.");
             }
-
-            // 버튼 텍스트 업데이트
-            m_StepButtonTextField.text = m_StepList[m_CurrentStepIndex].buttonText;
-            Debug.Log($"버튼 텍스트 변경: {m_StepButtonTextField.text}");
         }
 
         private void SaveModalTextToFile()
@@ -102,7 +98,7 @@ namespace Unity.VRTemplate
                 return;
             }
 
-            TextMeshProUGUI modalText = currentCard.GetComponentInChildren<TextMeshProUGUI>();
+            Text modalText = currentCard.GetComponentInChildren<Text>(); // UnityEngine.UI.Text 사용
             if (modalText == null)
             {
                 Debug.LogWarning($"Modal Text가 {currentCard.name} 안에서 발견되지 않았습니다.");

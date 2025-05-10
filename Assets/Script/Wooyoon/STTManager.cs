@@ -1,21 +1,25 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
-public class STTText : MonoBehaviour
+public class STTManager : MonoBehaviour
 {
-    public TextMeshProUGUI resultText; // Unity UI의 TextMeshPro 오브젝트 연결
-    public Toggle toggle; // Toggle UI 연결
-    public string customDirectoryPath = "ResultText/STT"; // 저장 경로 (Public으로 변경)
+    public Text resultText;
+    public Toggle toggle;
+    public string customDirectoryPath = "ResultText/STT";
+    public string questionPath = "ResultText/Question/input.txt";
 
-    private string apiKey = "AIzaSyAv6ryH4XWPVNwItU_CRiSs-EruDNeA7tY"; // Google API 키
-    private AudioClip recordedClip; // 녹음된 오디오 저장
-    private bool isRecording = false; // 녹음 상태 확인
-    private string filePath; // 저장 경로
+    private string apiKey = "AIzaSyAv6ryH4XWPVNwItU_CRiSs-EruDNeA7tY";
+    private AudioClip recordedClip;
+    private bool isRecording = false;
+    private string filePath;
+
+    private List<string> questions = new List<string>();
+    private int questionIndex = 0;
 
     void Start()
     {
@@ -28,9 +32,9 @@ public class STTText : MonoBehaviour
         }
         toggle.onValueChanged.AddListener(OnToggleChanged);
         InitializeFile();
+        LoadQuestions();
     }
 
-    // STT 텍스트 저장을 위한 초기화
     private void InitializeFile()
     {
         string directoryPath = Path.Combine(Application.dataPath, customDirectoryPath);
@@ -44,7 +48,6 @@ public class STTText : MonoBehaviour
                 Debug.Log($"폴더 생성: {directoryPath}");
             }
 
-            // 중복 방지: 새로운 파일명 생성
             filePath = GetUniqueFilePath(filePath);
             Debug.Log($"STT 파일 경로: {filePath}");
         }
@@ -69,7 +72,38 @@ public class STTText : MonoBehaviour
         return filePath;
     }
 
-    // 녹음 시작
+    private void LoadQuestions()
+    {
+        string fullPath = Path.Combine(Application.dataPath, questionPath);
+
+        if (!File.Exists(fullPath))
+        {
+            Debug.LogError("질문 파일을 찾을 수 없습니다: " + fullPath);
+            return;
+        }
+
+        string[] lines = File.ReadAllLines(fullPath);
+        if (lines.Length <= 2)
+        {
+            Debug.LogError("질문 파일에 충분한 줄이 없습니다.");
+            return;
+        }
+
+        List<string> trimmedLines = new List<string>(lines);
+        trimmedLines.RemoveAt(0); // 첫 줄
+        trimmedLines.RemoveAt(trimmedLines.Count - 1); // 마지막 줄
+
+        foreach (var line in trimmedLines)
+        {
+            if (!string.IsNullOrWhiteSpace(line) && !line.Contains("[PAUSE]"))
+            {
+                questions.Add("Q. " + line.Trim());
+            }
+        }
+
+        Debug.Log("질문 로드 완료: " + questions.Count + "개");
+    }
+
     void StartRecording()
     {
         if (!isRecording)
@@ -81,7 +115,6 @@ public class STTText : MonoBehaviour
         }
     }
 
-    // 녹음 종료 및 STT 변환
     void StopRecording()
     {
         if (isRecording)
@@ -96,7 +129,6 @@ public class STTText : MonoBehaviour
         }
     }
 
-    // AudioClip을 WAV로 변환
     byte[] ConvertAudioClipToWAV(AudioClip clip)
     {
         MemoryStream stream = new MemoryStream();
@@ -115,7 +147,6 @@ public class STTText : MonoBehaviour
         return bytes;
     }
 
-    // Google STT API로 전송
     private IEnumerator SendAudioToGoogle(byte[] audioData)
     {
         string url = $"https://speech.googleapis.com/v1/speech:recognize?key={apiKey}";
@@ -139,7 +170,6 @@ public class STTText : MonoBehaviour
                 string transcript = ParseGoogleSTTResponse(responseText);
                 resultText.text = "변환 결과: " + transcript;
 
-                // STT 결과 파일 저장
                 SaveSTTTextToFile(transcript);
             }
             else
@@ -168,7 +198,10 @@ public class STTText : MonoBehaviour
             return;
         }
 
-        string formattedText = $"면접자 : {sttText}\n\n";
+        string questionLine = (questionIndex < questions.Count) ? questions[questionIndex] : "Q. (질문 없음)";
+        questionIndex++;
+
+        string formattedText = $"{questionLine}\n면접자 : {sttText}\n\n";
         Debug.Log($"저장할 STT 텍스트: {formattedText}");
 
         try
