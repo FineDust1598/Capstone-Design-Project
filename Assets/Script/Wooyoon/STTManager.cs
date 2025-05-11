@@ -13,13 +13,15 @@ public class STTManager : MonoBehaviour
     public string customDirectoryPath = "ResultText/STT";
     public string questionPath = "ResultText/Question/input.txt";
 
-    private string apiKey = "AIzaSyAv6ryH4XWPVNwItU_CRiSs-EruDNeA7tY";
+    private string apiKey = "AIzaSyAv6ryH4XWPVNwItU_CRiSs-EruDNeA7tY"; // 구글 STT API 키
     private AudioClip recordedClip;
     private bool isRecording = false;
     private string filePath;
 
     private List<string> questions = new List<string>();
     private int questionIndex = 0;
+
+    private FeedbackManager feedbackManager;
 
     void Start()
     {
@@ -31,6 +33,13 @@ public class STTManager : MonoBehaviour
             return;
         }
         toggle.onValueChanged.AddListener(OnToggleChanged);
+
+        feedbackManager = FindObjectOfType<FeedbackManager>();
+        if (feedbackManager == null)
+        {
+            Debug.LogError("FeedbackManager를 찾을 수 없습니다. 씬에 추가되어 있는지 확인하세요.");
+        }
+
         InitializeFile();
         LoadQuestions();
     }
@@ -212,6 +221,12 @@ public class STTManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"STT 텍스트 저장 실패: {e.Message}");
+        }
+
+        if (feedbackManager != null)
+        {
+            Debug.Log($"[피드백 요청] 질문: {questionLine}\n답변: {sttText}");
+            StartCoroutine(feedbackManager.SendToUpstage(questionLine, sttText));
         }
     }
 

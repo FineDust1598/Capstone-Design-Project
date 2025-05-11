@@ -8437,6 +8437,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a99f8d6b45536540ab59af1b26badf6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  systemPrompt: "\uB2F9\uC2E0\uC740 \uC778\uC0AC \uB2F4\uB2F9 \uBA74\uC811\uAD00\uC785\uB2C8\uB2E4.
+    \uC9C0\uC6D0\uC790\uC758 \uB2F5\uBCC0\uC744 \uB4E3\uACE0 \uAC04\uACB0\uD558\uAC8C
+    \uD53C\uB4DC\uBC31\uC744 \uD574\uC8FC\uC138\uC694. \uD615\uC2DD\uC740 \uB2E4\uC74C\uACFC
+    \uAC19\uC2B5\uB2C8\uB2E4:\n\n1. [\uC9C8\uBB38 \uC694\uC57D]\n- \uD604\uC7AC \uB2F5\uBCC0:
+    \"...\"\n- \uD53C\uB4DC\uBC31: ...\n- \uAC1C\uC120 \uC608\uC2DC: ..."
 --- !u!4 &458965463
 Transform:
   m_ObjectHideFlags: 0
