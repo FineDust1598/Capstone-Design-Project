@@ -27,6 +27,7 @@ public class STTManager : MonoBehaviour
     {
         resultText.text = "Change Toggle to speak~";
 
+        // 토글 리스너 설정
         if (toggle == null)
         {
             Debug.LogError("Toggle이 연결되지 않았습니다! Inspector에서 할당하세요.");
@@ -34,16 +35,18 @@ public class STTManager : MonoBehaviour
         }
         toggle.onValueChanged.AddListener(OnToggleChanged);
 
+        // FeedbackManager 연결
         feedbackManager = FindObjectOfType<FeedbackManager>();
         if (feedbackManager == null)
         {
-            Debug.LogError("FeedbackManager를 찾을 수 없습니다. 씬에 추가되어 있는지 확인하세요.");
+            Debug.LogError("FeedbackManager를 찾을 수 없습니다.");
         }
 
-        InitializeFile();
-        LoadQuestions();
+        InitializeFile();    // 파일 저장 경로 초기화
+        LoadQuestions();     // 질문 파일 로드
     }
 
+    // STT 텍스트 저장할 폴더 및 고유 파일 경로 설정
     private void InitializeFile()
     {
         string directoryPath = Path.Combine(Application.dataPath, customDirectoryPath);
@@ -52,13 +55,9 @@ public class STTManager : MonoBehaviour
         try
         {
             if (!Directory.Exists(directoryPath))
-            {
                 Directory.CreateDirectory(directoryPath);
-                Debug.Log($"폴더 생성: {directoryPath}");
-            }
 
             filePath = GetUniqueFilePath(filePath);
-            Debug.Log($"STT 파일 경로: {filePath}");
         }
         catch (Exception e)
         {
@@ -66,6 +65,7 @@ public class STTManager : MonoBehaviour
         }
     }
 
+    // 동일한 이름의 파일이 존재하면 번호 붙여 고유 경로 생성
     private string GetUniqueFilePath(string filePath)
     {
         int count = 1;
@@ -81,6 +81,7 @@ public class STTManager : MonoBehaviour
         return filePath;
     }
 
+    // 질문 텍스트 파일을 읽어 리스트에 저장
     private void LoadQuestions()
     {
         string fullPath = Path.Combine(Application.dataPath, questionPath);
@@ -98,21 +99,19 @@ public class STTManager : MonoBehaviour
             return;
         }
 
+        // 첫/마지막 줄 제거, 공백 및 [PAUSE] 제외
         List<string> trimmedLines = new List<string>(lines);
-        trimmedLines.RemoveAt(0); // 첫 줄
-        trimmedLines.RemoveAt(trimmedLines.Count - 1); // 마지막 줄
+        trimmedLines.RemoveAt(0);
+        trimmedLines.RemoveAt(trimmedLines.Count - 1);
 
         foreach (var line in trimmedLines)
         {
             if (!string.IsNullOrWhiteSpace(line) && !line.Contains("[PAUSE]"))
-            {
                 questions.Add("Q. " + line.Trim());
-            }
         }
-
-        Debug.Log("질문 로드 완료: " + questions.Count + "개");
     }
 
+    // 음성 녹음 시작
     void StartRecording()
     {
         if (!isRecording)
@@ -120,10 +119,10 @@ public class STTManager : MonoBehaviour
             isRecording = true;
             recordedClip = Microphone.Start(null, false, 5, 16000);
             resultText.text = "녹음 중...";
-            Debug.Log("녹음 시작!");
         }
     }
 
+    // 음성 녹음 종료 및 구글 STT 전송
     void StopRecording()
     {
         if (isRecording)
@@ -131,13 +130,13 @@ public class STTManager : MonoBehaviour
             isRecording = false;
             Microphone.End(null);
             resultText.text = "녹음 종료! 변환 중...";
-            Debug.Log("녹음 종료! 변환 중...");
 
             byte[] audioData = ConvertAudioClipToWAV(recordedClip);
             StartCoroutine(SendAudioToGoogle(audioData));
         }
     }
 
+    // AudioClip을 WAV 포맷의 byte 배열로 변환
     byte[] ConvertAudioClipToWAV(AudioClip clip)
     {
         MemoryStream stream = new MemoryStream();
@@ -147,15 +146,14 @@ public class STTManager : MonoBehaviour
         short[] intData = new short[length];
 
         for (int i = 0; i < length; i++)
-        {
             intData[i] = (short)(data[i] * 32767);
-        }
 
         byte[] bytes = new byte[length * 2];
         Buffer.BlockCopy(intData, 0, bytes, 0, bytes.Length);
         return bytes;
     }
 
+    // 구글 STT API에 오디오 전송 및 결과 수신
     private IEnumerator SendAudioToGoogle(byte[] audioData)
     {
         string url = $"https://speech.googleapis.com/v1/speech:recognize?key={apiKey}";
@@ -179,7 +177,7 @@ public class STTManager : MonoBehaviour
                 string transcript = ParseGoogleSTTResponse(responseText);
                 resultText.text = "변환 결과: " + transcript;
 
-                SaveSTTTextToFile(transcript);
+                SaveSTTTextToFile(transcript); // 저장 및 피드백 요청
             }
             else
             {
@@ -189,61 +187,52 @@ public class STTManager : MonoBehaviour
         }
     }
 
+    // JSON 응답에서 transcript 추출
     private string ParseGoogleSTTResponse(string jsonResponse)
     {
         var json = JsonUtility.FromJson<GoogleSTTResponse>(jsonResponse);
         if (json != null && json.results.Length > 0)
-        {
             return json.results[0].alternatives[0].transcript;
-        }
+
         return "음성 인식 실패!";
     }
 
+    // STT 결과를 파일로 저장하고 FeedbackManager에 전달
     private void SaveSTTTextToFile(string sttText)
     {
-        if (string.IsNullOrWhiteSpace(sttText))
-        {
-            Debug.LogWarning("저장할 STT 텍스트가 비어 있습니다.");
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(sttText)) return;
 
         string questionLine = (questionIndex < questions.Count) ? questions[questionIndex] : "Q. (질문 없음)";
         questionIndex++;
 
         string formattedText = $"{questionLine}\n면접자 : {sttText}\n\n";
-        Debug.Log($"저장할 STT 텍스트: {formattedText}");
 
         try
         {
             File.AppendAllText(filePath, formattedText);
-            Debug.Log($"STT 텍스트 저장 완료: {filePath}");
         }
         catch (Exception e)
         {
             Debug.LogError($"STT 텍스트 저장 실패: {e.Message}");
         }
 
+        // 피드백 요청
         if (feedbackManager != null)
         {
-            Debug.Log($"[피드백 요청] 질문: {questionLine}\n답변: {sttText}");
             StartCoroutine(feedbackManager.SendToUpstage(questionLine, sttText));
         }
     }
 
+    // 토글 온/오프 시 녹음 시작/종료
     void OnToggleChanged(bool isOn)
     {
         if (isOn)
-        {
             StartRecording();
-            Debug.Log("녹음 시작 (Toggle: On)");
-        }
         else
-        {
             StopRecording();
-            Debug.Log("녹음 종료 (Toggle: Off)");
-        }
     }
 
+    // 구글 STT 응답 파싱용 클래스
     [Serializable]
     private class GoogleSTTResponse
     {
