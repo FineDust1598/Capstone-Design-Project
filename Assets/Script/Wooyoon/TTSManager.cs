@@ -5,6 +5,7 @@ using System.Collections;
 using System.Text;
 using System.IO;
 using System;
+using UnityEngine.InputSystem;
 
 public class TTSManager : MonoBehaviour
 {
@@ -16,7 +17,7 @@ public class TTSManager : MonoBehaviour
     private string tempPath;              // 임시 오디오 파일 경로
     private bool isContinuePressed = false; // 사용자가 continue 버튼을 눌렀는지 여부
 
-    private VRButtonInput inputAction;  //VR 버튼 감지
+    private VRInputAction inputAction;  //VR 버튼 감지
 
     void Start()
     {
@@ -39,10 +40,42 @@ public class TTSManager : MonoBehaviour
         }
 
         // 버튼 이벤트 연결 및 초기 비활성화
-        continueButton.onClick.AddListener(OnContinuePressed);
-        continueButton.gameObject.SetActive(false);
+        //continueButton.onClick.AddListener(OnContinuePressed);
+        //continueButton.gameObject.SetActive(false);
+    }
+    private void Awake()
+    {
+        inputAction = new VRInputAction();
     }
 
+    private void OnEnable()
+    {
+        inputAction.Enable();
+
+        inputAction.XRIRIghtHand.BButton.started += OnBButtonDown;
+        inputAction.XRIRIghtHand.BButton.canceled += OnBButtonUp;
+    }
+
+    private void OnDisable()
+    {
+        inputAction.XRIRIghtHand.BButton.started -= OnBButtonDown;
+        inputAction.XRIRIghtHand.BButton.canceled -= OnBButtonUp;
+
+        inputAction.Disable();
+    }
+
+    private void OnBButtonDown(InputAction.CallbackContext context)
+    {
+        Debug.Log("B 버튼 Down");
+        //#. 여기서 다음 버튼의 역할 추가
+        isContinuePressed = true;
+
+    }
+
+    private void OnBButtonUp(InputAction.CallbackContext context)
+    {
+        Debug.Log("B 버튼 Up");
+    }
     // 텍스트 파일을 한 줄씩 읽고 음성으로 변환하여 재생
     private IEnumerator PlayTextFileLineByLine(string filePath)
     {
@@ -54,16 +87,16 @@ public class TTSManager : MonoBehaviour
                 // [PAUSE] 명령이 포함된 경우, 사용자 입력 대기
                 if (line.Contains("[PAUSE]"))
                 {
-                    subtitleText.text = "[일시 정지 중 - 버튼 클릭 시 재생]";
+                    subtitleText.text = "[일시 정지 중]";
                     isContinuePressed = false;
-                    continueButton.gameObject.SetActive(true);
+                    //continueButton.gameObject.SetActive(true);
 
                     while (!isContinuePressed)
                     {
                         yield return null;
                     }
 
-                    continueButton.gameObject.SetActive(false);
+                    //continueButton.gameObject.SetActive(false);
                     subtitleText.text = "";
                     continue;
                 }

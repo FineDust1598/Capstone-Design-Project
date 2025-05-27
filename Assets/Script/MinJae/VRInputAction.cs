@@ -34,7 +34,16 @@ public partial class @VRInputAction: IInputActionCollection2, IDisposable
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""BButton"",
+                    ""type"": ""Button"",
+                    ""id"": ""63d336bf-55fe-41fb-9c26-4bd9523dbcd7"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -48,6 +57,17 @@ public partial class @VRInputAction: IInputActionCollection2, IDisposable
                     ""action"": ""AButton"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""19b6869b-3b9f-4616-b0d5-f9b2a6f20b08"",
+                    ""path"": ""<XRController>{RightHand}/{SecondaryButton}"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""BButton"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -57,6 +77,7 @@ public partial class @VRInputAction: IInputActionCollection2, IDisposable
         // XRI RIghtHand
         m_XRIRIghtHand = asset.FindActionMap("XRI RIghtHand", throwIfNotFound: true);
         m_XRIRIghtHand_AButton = m_XRIRIghtHand.FindAction("AButton", throwIfNotFound: true);
+        m_XRIRIghtHand_BButton = m_XRIRIghtHand.FindAction("BButton", throwIfNotFound: true);
     }
 
     ~@VRInputAction()
@@ -124,11 +145,13 @@ public partial class @VRInputAction: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_XRIRIghtHand;
     private List<IXRIRIghtHandActions> m_XRIRIghtHandActionsCallbackInterfaces = new List<IXRIRIghtHandActions>();
     private readonly InputAction m_XRIRIghtHand_AButton;
+    private readonly InputAction m_XRIRIghtHand_BButton;
     public struct XRIRIghtHandActions
     {
         private @VRInputAction m_Wrapper;
         public XRIRIghtHandActions(@VRInputAction wrapper) { m_Wrapper = wrapper; }
         public InputAction @AButton => m_Wrapper.m_XRIRIghtHand_AButton;
+        public InputAction @BButton => m_Wrapper.m_XRIRIghtHand_BButton;
         public InputActionMap Get() { return m_Wrapper.m_XRIRIghtHand; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -141,6 +164,9 @@ public partial class @VRInputAction: IInputActionCollection2, IDisposable
             @AButton.started += instance.OnAButton;
             @AButton.performed += instance.OnAButton;
             @AButton.canceled += instance.OnAButton;
+            @BButton.started += instance.OnBButton;
+            @BButton.performed += instance.OnBButton;
+            @BButton.canceled += instance.OnBButton;
         }
 
         private void UnregisterCallbacks(IXRIRIghtHandActions instance)
@@ -148,6 +174,9 @@ public partial class @VRInputAction: IInputActionCollection2, IDisposable
             @AButton.started -= instance.OnAButton;
             @AButton.performed -= instance.OnAButton;
             @AButton.canceled -= instance.OnAButton;
+            @BButton.started -= instance.OnBButton;
+            @BButton.performed -= instance.OnBButton;
+            @BButton.canceled -= instance.OnBButton;
         }
 
         public void RemoveCallbacks(IXRIRIghtHandActions instance)
@@ -168,5 +197,6 @@ public partial class @VRInputAction: IInputActionCollection2, IDisposable
     public interface IXRIRIghtHandActions
     {
         void OnAButton(InputAction.CallbackContext context);
+        void OnBButton(InputAction.CallbackContext context);
     }
 }
