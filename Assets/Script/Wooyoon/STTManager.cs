@@ -3,15 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+using UnityEngine.XR;
 
 public class STTManager : MonoBehaviour
 {
-    public Text resultText;
+    //public Text resultText;
     public Toggle toggle;
     public string customDirectoryPath = "ResultText/STT";
     public string questionPath = "ResultText/Question/input.txt";
+
+    private UnityEngine.XR.InputDevice rightController;
 
     private string apiKey = "AIzaSyAv6ryH4XWPVNwItU_CRiSs-EruDNeA7tY"; // 구글 STT API 키
     private AudioClip recordedClip;
@@ -23,17 +27,20 @@ public class STTManager : MonoBehaviour
 
     private FeedbackManager feedbackManager;
 
+    private VRInputAction inputAction; // VR 버튼 감지
+
+
     void Start()
     {
-        resultText.text = "Change Toggle to speak~";
+        //resultText.text = "Change Toggle to speak~";
 
         // 토글 리스너 설정
-        if (toggle == null)
-        {
-            Debug.LogError("Toggle이 연결되지 않았습니다! Inspector에서 할당하세요.");
-            return;
-        }
-        toggle.onValueChanged.AddListener(OnToggleChanged);
+        //if (toggle == null)
+        //{
+        //    Debug.LogError("Toggle이 연결되지 않았습니다! Inspector에서 할당하세요.");
+        //    return;
+        //}
+        //toggle.onValueChanged.AddListener(OnToggleChanged);
 
         // FeedbackManager 연결
         feedbackManager = FindObjectOfType<FeedbackManager>();
@@ -44,6 +51,26 @@ public class STTManager : MonoBehaviour
 
         InitializeFile();    // 파일 저장 경로 초기화
         LoadQuestions();     // 질문 파일 로드
+
+        ///////////////////////////////////////////////////////
+        
+        var devices = new List<UnityEngine.XR.InputDevice>();
+        InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Right | InputDeviceCharacteristics.Controller,devices);
+        if (devices.Count > 0)
+        {
+            rightController = devices[0];
+            Debug.LogError("오른손 컨트롤러 연결.");
+        }
+        else
+        {
+            Debug.LogError("오른손 컨트롤러를 찾을 수 없습니다.");
+            InputDevices.GetDevices(devices);
+            foreach (var device in devices)
+            {
+                Debug.Log($"Device: {device.name}, Role: {device.characteristics}");
+            }
+        }
+
     }
 
     // STT 텍스트 저장할 폴더 및 고유 파일 경로 설정
@@ -114,22 +141,24 @@ public class STTManager : MonoBehaviour
     // 음성 녹음 시작
     void StartRecording()
     {
+        Debug.Log("녹음 시작!");
         if (!isRecording)
         {
             isRecording = true;
             recordedClip = Microphone.Start(null, false, 5, 16000);
-            resultText.text = "녹음 중...";
+            //resultText.text = "녹음 중...";
         }
     }
 
     // 음성 녹음 종료 및 구글 STT 전송
     void StopRecording()
     {
+        Debug.Log("녹음 종료!");
         if (isRecording)
         {
             isRecording = false;
             Microphone.End(null);
-            resultText.text = "녹음 종료! 변환 중...";
+            //resultText.text = "녹음 종료! 변환 중...";
 
             byte[] audioData = ConvertAudioClipToWAV(recordedClip);
             StartCoroutine(SendAudioToGoogle(audioData));
@@ -175,14 +204,14 @@ public class STTManager : MonoBehaviour
                 Debug.Log("STT 성공! 응답: " + responseText);
 
                 string transcript = ParseGoogleSTTResponse(responseText);
-                resultText.text = "변환 결과: " + transcript;
+                //resultText.text = "변환 결과: " + transcript;
 
                 SaveSTTTextToFile(transcript); // 저장 및 피드백 요청
             }
             else
             {
                 Debug.LogError("STT 실패: " + request.error);
-                resultText.text = "변환 실패!";
+                //resultText.text = "변환 실패!";
             }
         }
     }
@@ -231,6 +260,41 @@ public class STTManager : MonoBehaviour
         else
             StopRecording();
     }
+
+    // VR 버튼 업 다운시 녹음 시작/종료
+    private void Awake()
+    {
+        inputAction = new VRInputAction();
+    }
+
+    private void OnEnable()
+    {
+        inputAction.Enable();
+
+        inputAction.XRIRIghtHand.AButton.started += OnAButtonDown;
+        inputAction.XRIRIghtHand.AButton.canceled += OnAButtonUp;
+    }
+
+    private void OnDisable()
+    {
+        inputAction.XRIRIghtHand.AButton.started -= OnAButtonDown;
+        inputAction.XRIRIghtHand.AButton.canceled -= OnAButtonUp;
+
+        inputAction.Disable();
+    }
+
+    private void OnAButtonDown(InputAction.CallbackContext context)
+    {
+        Debug.Log("A 버튼 Down");
+        StartRecording();
+    }
+
+    private void OnAButtonUp(InputAction.CallbackContext context)
+    {
+        Debug.Log("A 버튼 Up");
+        StopRecording();
+    }
+
 
     // 구글 STT 응답 파싱용 클래스
     [Serializable]

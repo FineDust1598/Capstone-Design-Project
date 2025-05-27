@@ -1,0 +1,34 @@
+{
+    "name": "VRInputAction",
+    "maps": [
+        {
+            "name": "XRI RIghtHand",
+            "id": "c265b0a6-f581-4598-a9ec-7500217b0068",
+            "actions": [
+                {
+                    "name": "AButton",
+                    "type": "Button",
+                    "id": "79a39f68-68a5-4c77-99c7-f005a5c3bde5",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "b5018de1-0ce2-4630-8a37-a0e0b91edc25",
+                    "path": "<XRController>{RightHand}/{PrimaryButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "AButton",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

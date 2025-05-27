@@ -16,6 +16,8 @@ public class TTSManager : MonoBehaviour
     private string tempPath;              // 임시 오디오 파일 경로
     private bool isContinuePressed = false; // 사용자가 continue 버튼을 눌렀는지 여부
 
+    private VRButtonInput inputAction;  //VR 버튼 감지
+
     void Start()
     {
         // API 키 파일 로드

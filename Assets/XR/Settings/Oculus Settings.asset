@@ -22,11 +22,14 @@ MonoBehaviour:
   PhaseSync: 0
   SymmetricProjection: 0
   SubsampledLayout: 0
-  FoveatedRenderingMethod: 0
+  FoveatedRenderingMethod: 1
   LateLatching: 0
   LateLatchingDebug: 0
   EnableTrackingOriginStageMode: 0
-  SpaceWarp: 0
+  SpaceWarp: 1
   TargetQuest2: 1
-  TargetQuestPro: 1
+  TargetQuestPro: 0
+  TargetQuest3: 0
+  TargetQuest3S: 0
   SystemSplashScreen: {fileID: 0}
+  UseStickControlThumbsticks: 1
